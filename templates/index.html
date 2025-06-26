@@ -43,12 +43,45 @@
         // Combine audio chunks into a blob
         const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
         const audioUrl = URL.createObjectURL(audioBlob);
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "recording.webm");
 
         // Optional: Play the recording back
         const audio = new Audio(audioUrl);
         audio.controls = true;
-        transcriptDiv.innerHTML = "<strong>Recording ready:</strong><br/>";
+        transcriptDiv.innerHTML = "<strong>Recording:</strong><br/>";
         transcriptDiv.appendChild(audio);
+
+        fetch("/transcribe/", {
+  method: "POST",
+  body: formData,
+})
+.then(async response => {
+  const text = await response.text();
+  if (!response.ok) {
+    throw new Error("Server error: " + response.status + " – " + text);
+  }
+  return JSON.parse(text);
+})
+.then(data => {
+  transcriptDiv.innerHTML += `<p>Transcription: ${data.text}</p>`;
+})
+.catch(error => {
+  console.error("Error during transcription:", error);
+  transcriptDiv.innerHTML += `<p>Error: ${error.message}</p>`;
+});
+
+        // Uncomment the following lines if you have a server endpoint to handle transcription)
+        
+        //.then(response => response.json())
+        //.then(data => {
+       //   transcriptDiv.innerHTML += `<p>Transcription: ${data.text}</p>`;
+        //})
+        //.catch(error => {
+       //   console.error("Error during transcription:", error);
+       //   transcriptDiv.innerHTML += `<p>Error: ${error.message}</p>`;
+       // })
+
 
         // TODO: Send `audioBlob` to a server or speech-to-text API
         startBtn.disabled = false;
